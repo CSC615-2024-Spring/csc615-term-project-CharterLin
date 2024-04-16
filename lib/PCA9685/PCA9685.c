@@ -55,8 +55,9 @@ static UBYTE PCA9685_ReadByte(UBYTE reg)
  * Example:
  * PCA9685_SetPWM(0, 0, 4095);
  */
-static void PCA9685_SetPWM(UBYTE channel, UWORD on, UWORD off)
+static void PCA9685_SetPWM(UBYTE channel, UWORD on, UWORD off, uint8_t addr)
 {
+    bcm2835_i2c_setSlaveAddress(addr);
     PCA9685_WriteByte(LED0_ON_L + 4*channel, on & 0xFF);
     PCA9685_WriteByte(LED0_ON_H + 4*channel, on >> 8);
     PCA9685_WriteByte(LED0_OFF_L + 4*channel, off & 0xFF);
@@ -93,8 +94,9 @@ void PCA9685_Init(char addr)
  * Example:
  * PCA9685_SetPWMFreq(50);
  */
-void PCA9685_SetPWMFreq(UWORD freq)
+void PCA9685_SetPWMFreq(UWORD freq, uint8_t addr)
 {
+    bcm2835_i2c_setSlaveAddress(addr);
     freq *= 0.9;  // Correct for overshoot in the frequency setting (see issue #11).
     double prescaleval = 25000000.0;
     prescaleval /= 4096.0;
@@ -124,9 +126,9 @@ void PCA9685_SetPWMFreq(UWORD freq)
  * Example:
  * PCA9685_SetPwmDutyCycle(1, 100);
  */
-void PCA9685_SetPwmDutyCycle(UBYTE channel, UWORD pulse)
+void PCA9685_SetPwmDutyCycle(UBYTE channel, UWORD pulse, uint8_t addr)
 {
-    PCA9685_SetPWM(channel, 0, pulse * (4096 / 100) - 1);
+    PCA9685_SetPWM(channel, 0, pulse * (4096 / 100) - 1, addr);
 }
 
 /**
@@ -138,10 +140,10 @@ void PCA9685_SetPwmDutyCycle(UBYTE channel, UWORD pulse)
  * Example:
  * PCA9685_SetLevel(3, 1);
  */
-void PCA9685_SetLevel(UBYTE channel, UWORD value)
+void PCA9685_SetLevel(UBYTE channel, UWORD value, uint8_t addr)
 {
     if (value == 1)
-        PCA9685_SetPWM(channel, 0, 4095);
+        PCA9685_SetPWM(channel, 0, 4095, addr);
     else
-        PCA9685_SetPWM(channel, 0, 0);
+        PCA9685_SetPWM(channel, 0, 0, addr);
 }

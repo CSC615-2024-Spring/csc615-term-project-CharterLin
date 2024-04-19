@@ -20,9 +20,10 @@
 
 #include "assignment3.h"
 
-volatile int irValue = 1;       // input value from ir sensor
-volatile int lineValue = 1;     // input value from line sensor
-volatile int keepLooping = 1;   // tells program when to finish and exit
+volatile int irValue = 1;           // input value from ir sensor
+volatile int lineRightValue = 0;    // input value from right line sensor
+volatile int lineLeftValue = 0;     // input value from left line sensor
+volatile int keepLooping = 1;       // tells program when to finish and exit
 
 typedef struct threadInfo
 {
@@ -32,23 +33,8 @@ typedef struct threadInfo
 } threadInfo;
 
 threadInfo* irThread;
-threadInfo* lineThread1;
-threadInfo* lineThread2;
-
-void initialize()
-{
-    DEV_ModuleInit();
-    PCA9685_Init(TARGET);
-    if(gpioInitialise() < 0) 
-    {
-        printf("pigio initialization failed\n");
-    }
-
-    gpioSetMode(IR_OUT, PI_INPUT);
-    irThread = malloc(sizeof(threadInfo));
-    irThread->pinNumber = IR_OUT;       // this thread will run for ir sensor 
-    irThread->valuePointer = &irValue;  // this thread will modify ir readings
-}
+threadInfo* lineRightThread;
+threadInfo* lineLeftThread;
 
 // thread routine: reads pin value from given pin number and transfer that value to
 // given integer variable
@@ -67,12 +53,48 @@ void *readSensor(void* param)
 
 int createThreads()
 {
-    if(pthread_create(&irThread->id, NULL, &readSensor, (void*) irThread) != 0)
-    // || pthread_create(&lineThread.id, NULL, &readSensor, (void*) &lineThread) != 0)
+    if(pthread_create(&irThread->id, NULL, &readSensor, (void*) irThread) != 0
+    || pthread_create(&lineRightThread->id, NULL, &readSensor, (void*) lineRightThread) != 0
+    || pthread_create(&lineLeftThread->id, NULL, &readSensor, (void*) lineLeftThread) != 0)
     {
         perror("Thread creation error");
         return 1;
     }
+
+    return 0;
+}
+
+int initialize()
+{
+    DEV_ModuleInit();
+    DEV_ModuleExit();
+    DEV_ModuleInit();
+    PCA9685_Init(LEFT_SIDE);
+    PCA9685_Init(RIGHT_SIDE);
+    if(gpioInitialise() < 0) 
+    {
+        printf("pigio initialization failed\n");
+        return 1;
+    }
+
+
+    //TODO function to initialize these threads
+    gpioSetMode(IR_OUT, PI_INPUT);
+    irThread = malloc(sizeof(threadInfo));
+    irThread->pinNumber = IR_OUT;       // this thread will run for ir sensor 
+    irThread->valuePointer = &irValue;  // this thread will modify ir readings
+
+    gpioSetMode(LINE_RIGHT_OUT, PI_INPUT);
+    lineRightThread = malloc(sizeof(threadInfo));
+    lineRightThread->pinNumber = LINE_RIGHT_OUT;       // this thread will run for ir sensor 
+    lineRightThread->valuePointer = &lineRightValue;  // this thread will modify ir readings
+
+    gpioSetMode(LINE_LEFT_OUT, PI_INPUT);
+    lineLeftThread = malloc(sizeof(threadInfo));
+    lineLeftThread->pinNumber = LINE_LEFT_OUT;       // this thread will run for ir sensor 
+    lineLeftThread->valuePointer = &lineLeftValue;  // this thread will modify ir readings
+
+    return createThreads();
 }
 
 // Ctrl + C signal handler. Signals the program to cleanup threads and close down.
@@ -81,28 +103,88 @@ static void endProgram()
     keepLooping = 0;
 }
 
+void moveForward()
+{
+    PCA9685_SetLevel(AIN1, 0, LEFT_SIDE);          
+    PCA9685_SetLevel(AIN2, 1, LEFT_SIDE);          
+    PCA9685_SetLevel(BIN1, 0, LEFT_SIDE);         
+    PCA9685_SetLevel(BIN2, 1, LEFT_SIDE);          
+
+    PCA9685_SetLevel(AIN1, 1, RIGHT_SIDE);          
+    PCA9685_SetLevel(AIN2, 0, RIGHT_SIDE);          
+    PCA9685_SetLevel(BIN1, 1, RIGHT_SIDE);         
+    PCA9685_SetLevel(BIN2, 0, RIGHT_SIDE);
+}
+
+void moveBackwards()
+{
+    PCA9685_SetLevel(AIN1, 1, LEFT_SIDE);          
+    PCA9685_SetLevel(AIN2, 0, LEFT_SIDE);          
+    PCA9685_SetLevel(BIN1, 1, LEFT_SIDE);         
+    PCA9685_SetLevel(BIN2, 0, LEFT_SIDE);          
+
+    PCA9685_SetLevel(AIN1, 0, RIGHT_SIDE);          
+    PCA9685_SetLevel(AIN2, 1, RIGHT_SIDE);          
+    PCA9685_SetLevel(BIN1, 0, RIGHT_SIDE);         
+    PCA9685_SetLevel(BIN2, 1, RIGHT_SIDE);
+}
+
+void turnRight()
+{
+    PCA9685_SetLevel(AIN1, 0, LEFT_SIDE);          
+    PCA9685_SetLevel(AIN2, 1, LEFT_SIDE);          
+    PCA9685_SetLevel(BIN1, 0, LEFT_SIDE);         
+    PCA9685_SetLevel(BIN2, 1, LEFT_SIDE);          
+
+    PCA9685_SetLevel(AIN1, 0, RIGHT_SIDE);          
+    PCA9685_SetLevel(AIN2, 1, RIGHT_SIDE);          
+    PCA9685_SetLevel(BIN1, 0, RIGHT_SIDE);         
+    PCA9685_SetLevel(BIN2, 1, RIGHT_SIDE);
+}
+
+void turnLeft()
+{
+    PCA9685_SetLevel(AIN1, 1, LEFT_SIDE);          
+    PCA9685_SetLevel(AIN2, 0, LEFT_SIDE);          
+    PCA9685_SetLevel(BIN1, 1, LEFT_SIDE);         
+    PCA9685_SetLevel(BIN2, 0, LEFT_SIDE);          
+
+    PCA9685_SetLevel(AIN1, 1, RIGHT_SIDE);          
+    PCA9685_SetLevel(AIN2, 0, RIGHT_SIDE);          
+    PCA9685_SetLevel(BIN1, 1, RIGHT_SIDE);         
+    PCA9685_SetLevel(BIN2, 0, RIGHT_SIDE);
+}
+
+void go()
+{
+    PCA9685_SetPwmDutyCycle(PWMA, MAX_LEFT_SPEED, LEFT_SIDE);
+    PCA9685_SetPwmDutyCycle(PWMB, MAX_LEFT_SPEED, LEFT_SIDE);
+
+    PCA9685_SetPwmDutyCycle(PWMA, MAX_RIGHT_SPEED, RIGHT_SIDE);
+    PCA9685_SetPwmDutyCycle(PWMB, MAX_RIGHT_SPEED, RIGHT_SIDE);
+}
+
+void brake()
+{
+    PCA9685_SetPwmDutyCycle(PWMA, 0, LEFT_SIDE);
+    PCA9685_SetPwmDutyCycle(PWMB, 0, LEFT_SIDE);
+
+    PCA9685_SetPwmDutyCycle(PWMA, 0, RIGHT_SIDE);
+    PCA9685_SetPwmDutyCycle(PWMB, 0, RIGHT_SIDE);
+}
+
 int main(void)
 {   
-    initialize();
-    createThreads();
+    if(initialize()) {
+        printf("Initialization error\n");
+        return 1;
+    }
     
-    PCA9685_SetPWMFreq(100, TARGET);
+    PCA9685_SetPWMFreq(100, LEFT_SIDE);
+    PCA9685_SetPWMFreq(100, RIGHT_SIDE);
     
-    PCA9685_SetLevel(AIN1, 0, TARGET);          
-    PCA9685_SetLevel(AIN2, 1, TARGET);          
-    PCA9685_SetLevel(BIN1, 0, TARGET);         
-    PCA9685_SetLevel(BIN2, 1, TARGET);          
-
-    PCA9685_SetLevel(AIN1, 0, TARGET2);          
-    PCA9685_SetLevel(AIN2, 1, TARGET2);          
-    PCA9685_SetLevel(BIN1, 0, TARGET2);         
-    PCA9685_SetLevel(BIN2, 1, TARGET2);          
-
-    PCA9685_SetPwmDutyCycle(PWMA, MAX_SPEED, TARGET);
-    PCA9685_SetPwmDutyCycle(PWMB, MAX_SPEED, TARGET);
-
-    PCA9685_SetPwmDutyCycle(PWMA, MAX_SPEED, TARGET2);
-    PCA9685_SetPwmDutyCycle(PWMB, MAX_SPEED, TARGET2);
+    moveForward();         
+    go();
 
     signal(SIGINT, endProgram);     //set signal handler for ctrl+c
     while(keepLooping)
@@ -112,78 +194,84 @@ int main(void)
         if(irValue == 0)
         {   
             printf("Obstacle detected, ");
-            PCA9685_SetPwmDutyCycle(PWMA, 0, TARGET);
-            PCA9685_SetPwmDutyCycle(PWMB, 0, TARGET);
+            brake();
+            
+            usleep(500000);
 
-            PCA9685_SetPwmDutyCycle(PWMA, 0, TARGET2);
-            PCA9685_SetPwmDutyCycle(PWMB, 0, TARGET2); 
+            moveBackwards();
+            go();
+
+            usleep(500000);
+            turnRight();
+            usleep(750000);
+            moveForward();
+        } else
+        {
+            PCA9685_SetPwmDutyCycle(PWMA, MAX_LEFT_SPEED, LEFT_SIDE);
+            PCA9685_SetPwmDutyCycle(PWMB, MAX_LEFT_SPEED, LEFT_SIDE);
+
+            PCA9685_SetPwmDutyCycle(PWMA, MAX_RIGHT_SPEED, RIGHT_SIDE);
+            PCA9685_SetPwmDutyCycle(PWMB, MAX_RIGHT_SPEED, RIGHT_SIDE);
+            printf("All clear, \n");
         }
+
+        // checks value obtained from line sensors
+        // and notify if sensor detects a line
+        if(lineRightValue == 0)
+            printf("right off line, ");
         else
         {
-            PCA9685_SetPwmDutyCycle(PWMA, MAX_SPEED, TARGET);
-            PCA9685_SetPwmDutyCycle(PWMB, MAX_SPEED, TARGET);
-
-            PCA9685_SetPwmDutyCycle(PWMA, MAX_SPEED, TARGET2);
-            PCA9685_SetPwmDutyCycle(PWMB, MAX_SPEED, TARGET2);
-            printf("All clear, ");
+            printf("right on line, ");
+            turnRight();
+            usleep(300000);
+            moveForward();
         }
-        // checks value obtained from line sensor
-        // and notify if sensor detects a line
-        if(lineValue == 0)
-            printf("on line\n");
-        else
-            printf("off line\n");
 
-        usleep(500000);
+        if(lineLeftValue == 0)
+        {
+            printf("left off line.\n");
+        } else
+        {
+            printf("left on line.\n");
+            turnLeft();
+            usleep(300000);
+            moveForward();
+        }
+
+        // usleep(300000);
     }
-    // usleep(2000000);
+
+    brake();
+
+    gpioTerminate();
+    DEV_ModuleExit();
+    return 0;
 
     // // Duty cycle decrease by 5% every 0.3s, down to 15%
     // // Motor speed subsequently decreases down to 15%
-    // for(int i = 5; (MAX_SPEED - i) >= 15; i += 5)
+    // for(int i = 5; (MAX_RIGHT_SPEED - i) >= 15; i += 5)
     // {
-    //     PCA9685_SetPwmDutyCycle(PWMA, MAX_SPEED - i, TARGET);
-    //     PCA9685_SetPwmDutyCycle(PWMB, MAX_SPEED - i, TARGET);
+    //     PCA9685_SetPwmDutyCycle(PWMA, MAX_RIGHT_SPEED - i, LEFT_SIDE);
+    //     PCA9685_SetPwmDutyCycle(PWMB, MAX_RIGHT_SPEED - i, LEFT_SIDE);
 
-    //     PCA9685_SetPwmDutyCycle(PWMA, MAX_SPEED - i, TARGET2);
-    //     PCA9685_SetPwmDutyCycle(PWMB, MAX_SPEED - i, TARGET2);
+    //     PCA9685_SetPwmDutyCycle(PWMA, MAX_RIGHT_SPEED - i, RIGHT_SIDE);
+    //     PCA9685_SetPwmDutyCycle(PWMB, MAX_RIGHT_SPEED - i, RIGHT_SIDE);
     //     usleep(300000);
     // }
 
-    // Stop the motor, duty cycle 0%, for 1 second
-    PCA9685_SetPwmDutyCycle(PWMA, 0, TARGET);
-    PCA9685_SetPwmDutyCycle(PWMB, 0, TARGET);
-
-    PCA9685_SetPwmDutyCycle(PWMA, 0, TARGET2);
-    PCA9685_SetPwmDutyCycle(PWMB, 0, TARGET2);
-    usleep(1000000);
     
-    // Set motor to move backwards by alternating the channel
-    // PCA9685_SetLevel(AIN1, 1);
-    // PCA9685_SetLevel(AIN2, 0);
-    // PCA9685_SetLevel(BIN1, 1);
-    // PCA9685_SetLevel(BIN2, 0);
-
+    
     // Restart the motor slowly, in reverse direction
     // Increase duty cycle by 5% every 0.3 second, until motor is at max speed
-    // for(int i = 0; i <= MAX_SPEED; i += 5)
+    // for(int i = 0; i <= MAX_RIGHT_SPEED; i += 5)
     // {
     //     PCA9685_SetPwmDutyCycle(PWMA, i);
     //     PCA9685_SetPwmDutyCycle(PWMB, i);
     //     usleep(300000);
     // }
 
-    // Let motor run at max speed for 2s and then stop
-    // usleep(2000000);
-    // PCA9685_SetPwmDutyCycle(PWMA, 0);
-    // PCA9685_SetPwmDutyCycle(PWMB, 0);
-
     //close libraries and free all mallocs
-    gpioTerminate();
-    DEV_ModuleExit();
-    return 0;
 }
-
 
 
 // int main()

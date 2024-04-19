@@ -27,18 +27,20 @@
 #include <pthread.h>
 #include <signal.h>
 
-#define MAX_SPEED   70             // max motor duty cycle
-#define PWMA        PCA_CHANNEL_0   // PCA channel(PWMA) duty cycle 
-#define PWMB        PCA_CHANNEL_5
-#define AIN1        PCA_CHANNEL_1   // PCA channel(AIN1) for Motor A backwards
-#define AIN2        PCA_CHANNEL_2   // PCA channel(AIN2) for Motor A forward
-#define BIN1        PCA_CHANNEL_3   // PCA channel(BIN1) for Motor A backwards
-#define BIN2        PCA_CHANNEL_4   // PCA channel(BIN2) for Motor A forward
-#define TARGET      0x42            // I2C target address
-#define TARGET2     0x49            // I2C target address
+#define MAX_RIGHT_SPEED     100             // max motor duty cycle
+#define MAX_LEFT_SPEED      90              // max motor duty cycle
+#define PWMA                PCA_CHANNEL_0   // PCA channel(PWMA) duty cycle 
+#define PWMB                PCA_CHANNEL_5
+#define AIN1                PCA_CHANNEL_1   // PCA channel(AIN1) for Motor A backwards
+#define AIN2                PCA_CHANNEL_2   // PCA channel(AIN2) for Motor A forward
+#define BIN1                PCA_CHANNEL_3   // PCA channel(BIN1) for Motor A backwards
+#define BIN2                PCA_CHANNEL_4   // PCA channel(BIN2) for Motor A forward
+#define LEFT_SIDE           0x49            // I2C target address
+#define RIGHT_SIDE          0x40            // I2C target address
 
-#define IR_OUT 14           // gpio pin for IR sensor 
-// #define LINE_OUT 15         // gpio pin for line sensor
+#define IR_OUT              14              // gpio pin for IR sensor 
+#define LINE_RIGHT_OUT      15              // gpio pin for line sensor
+#define LINE_LEFT_OUT       17              // gpio pin for line sensor
 
 
 

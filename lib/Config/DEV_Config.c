@@ -132,6 +132,7 @@ void DEV_I2C_Init(uint8_t Add)
     #ifdef USE_BCM2835_LIB
         printf("BCM2835 I2C Device\r\n");  
         bcm2835_i2c_begin();
+        bcm2835_i2c_setSlaveAddress(Add);
     #endif
 #endif
 }

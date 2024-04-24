@@ -27,8 +27,8 @@
 #include <pthread.h>
 #include <signal.h>
 
-#define MAX_RIGHT_SPEED     100             // max motor duty cycle
-#define MAX_LEFT_SPEED      90              // max motor duty cycle
+#define MAX_RIGHT_SPEED     70             // max motor duty cycle
+#define MAX_LEFT_SPEED      63              // max motor duty cycle
 #define PWMA                PCA_CHANNEL_0   // PCA channel(PWMA) duty cycle 
 #define PWMB                PCA_CHANNEL_5
 #define AIN1                PCA_CHANNEL_1   // PCA channel(AIN1) for Motor A backwards

@@ -142,12 +142,34 @@ void turnRight()
     PCA9685_SetLevel(BIN2, 1, RIGHT_SIDE);
 }
 
+void sharpTurnRight()
+{
+    PCA9685_SetLevel(AIN1, 0, LEFT_SIDE);          
+    PCA9685_SetLevel(AIN2, 1, LEFT_SIDE);          
+    PCA9685_SetLevel(BIN1, 0, LEFT_SIDE);         
+    PCA9685_SetLevel(BIN2, 1, LEFT_SIDE);          
+
+    PCA9685_SetPwmDutyCycle(PWMA, 0, RIGHT_SIDE);
+    PCA9685_SetPwmDutyCycle(PWMB, 0, RIGHT_SIDE);
+}
+
 void turnLeft()
 {
     PCA9685_SetLevel(AIN1, 1, LEFT_SIDE);          
     PCA9685_SetLevel(AIN2, 0, LEFT_SIDE);          
     PCA9685_SetLevel(BIN1, 1, LEFT_SIDE);         
     PCA9685_SetLevel(BIN2, 0, LEFT_SIDE);          
+
+    PCA9685_SetLevel(AIN1, 1, RIGHT_SIDE);          
+    PCA9685_SetLevel(AIN2, 0, RIGHT_SIDE);          
+    PCA9685_SetLevel(BIN1, 1, RIGHT_SIDE);         
+    PCA9685_SetLevel(BIN2, 0, RIGHT_SIDE);
+}
+
+void sharpTurnLeft()
+{
+    PCA9685_SetPwmDutyCycle(PWMA, 0, LEFT_SIDE);
+    PCA9685_SetPwmDutyCycle(PWMB, 0, LEFT_SIDE);          
 
     PCA9685_SetLevel(AIN1, 1, RIGHT_SIDE);          
     PCA9685_SetLevel(AIN2, 0, RIGHT_SIDE);          
@@ -191,54 +213,52 @@ int main(void)
     {
         // checks value obtained from ir sensor
         // and notify if an obstacle is detected 
-        if(irValue == 0)
+        while(irValue == 0)
         {   
             printf("Obstacle detected, ");
+            usleep(100000);
             brake();
-            
-            usleep(500000);
+            // moveBackwards();
+            // go();
 
-            moveBackwards();
-            go();
-
-            usleep(500000);
-            turnRight();
-            usleep(750000);
-            moveForward();
-        } else
-        {
-            PCA9685_SetPwmDutyCycle(PWMA, MAX_LEFT_SPEED, LEFT_SIDE);
-            PCA9685_SetPwmDutyCycle(PWMB, MAX_LEFT_SPEED, LEFT_SIDE);
-
-            PCA9685_SetPwmDutyCycle(PWMA, MAX_RIGHT_SPEED, RIGHT_SIDE);
-            PCA9685_SetPwmDutyCycle(PWMB, MAX_RIGHT_SPEED, RIGHT_SIDE);
-            printf("All clear, \n");
+            // usleep(500000);
+            // turnRight();
+            // usleep(750000);
+            // moveForward();
         }
+        go();
 
         // checks value obtained from line sensors
         // and notify if sensor detects a line
-        if(lineRightValue == 0)
-            printf("right off line, ");
-        else
+        while(lineRightValue != 0)
         {
-            printf("right on line, ");
+            printf("turning right.\n");
             turnRight();
-            usleep(300000);
-            moveForward();
+            printf("turned right.\n");
+            while(lineRightValue != 0 && lineLeftValue != 0) {
+                printf("both sensors on, in first while loop.\n");
+                printf("sharp right turn.\n");
+                sharpTurnRight();
+            }
+            go();
+            usleep(100000);
         }
-
-        if(lineLeftValue == 0)
+        
+        while(lineLeftValue != 0)
         {
-            printf("left off line.\n");
-        } else
-        {
-            printf("left on line.\n");
+            printf("turning left.\n");
             turnLeft();
-            usleep(300000);
-            moveForward();
+            printf("turned left.\n");
+            while(lineRightValue != 0 && lineLeftValue != 0) {
+                printf("both sensors on, in second while loop.\n");
+                printf("sharp left turn.\n");
+                sharpTurnLeft();
+            }
+            go();
+            usleep(100000);
         }
-
-        // usleep(300000);
+        moveForward();
+        // usleep(100000);
     }
 
     brake();

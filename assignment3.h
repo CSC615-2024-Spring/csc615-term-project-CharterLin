@@ -26,6 +26,7 @@
 #include <pigpio.h>
 #include <pthread.h>
 #include <signal.h>
+#include <sys/time.h>
 
 #define MAX_RIGHT_SPEED     70             // max motor duty cycle
 #define MAX_LEFT_SPEED      63              // max motor duty cycle
@@ -39,9 +40,12 @@
 #define RIGHT_SIDE          0x40            // I2C target address
 
 #define IR_OUT              14              // gpio pin for IR sensor 
+#define FRONT_RIGHT_IR_OUT    18              // gpio pin for left back IR sensor
+#define TRIGGER   23              // gpio pin for left front IR sensor 
+#define ECHO     24              // gpio pin for left front IR sensor
 #define LINE_RIGHT_OUT      15              // gpio pin for line sensor
 #define LINE_LEFT_OUT       17              // gpio pin for line sensor
-
+#define VELOCITY 0.034 // cm/uS
 
 
 

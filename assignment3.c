@@ -20,8 +20,9 @@
 
 #include "assignment3.h"
 
-volatile int irValue = 1;           // input value from ir sensor
-volatile int lineRightValue = 0;    // input value from right line sensor
+volatile int echoDistance = 0;      // in cm
+volatile int frontIrValue = 1;      // input value from ir sensor
+volatile int lineRightValue = 0;       // input value from right line sensor
 volatile int lineLeftValue = 0;     // input value from left line sensor
 volatile int keepLooping = 1;       // tells program when to finish and exit
 
@@ -32,9 +33,10 @@ typedef struct threadInfo
     volatile int* valuePointer; // pointer to the integer value that the thread will modify
 } threadInfo;
 
-threadInfo* irThread;
+threadInfo* frontIrThread;
 threadInfo* lineRightThread;
 threadInfo* lineLeftThread;
+threadInfo* echoThread;
 
 // thread routine: reads pin value from given pin number and transfer that value to
 // given integer variable
@@ -51,11 +53,38 @@ void *readSensor(void* param)
     }
 }
 
+void *readEcho(void* param)
+{
+    threadInfo *thread = (threadInfo*)param;
+
+    struct timeval start, end;
+    while(1)
+    {
+        if(!keepLooping)
+            pthread_exit((void*)0);
+
+        gpioWrite(TRIGGER, 1);
+        usleep(10);
+        gpioWrite(TRIGGER, 0);
+
+        while(gpioRead(ECHO) == 0) {}
+        gettimeofday(&start, NULL);
+
+        while(gpioRead(ECHO) == 1) {}
+        gettimeofday(&end, NULL); 
+
+        suseconds_t duration = end.tv_usec - start.tv_usec;
+
+        *thread->valuePointer = ((int)duration * VELOCITY) / 2;
+    }
+}
+
 int createThreads()
 {
-    if(pthread_create(&irThread->id, NULL, &readSensor, (void*) irThread) != 0
+    if(pthread_create(&frontIrThread->id, NULL, &readSensor, (void*) frontIrThread) != 0
     || pthread_create(&lineRightThread->id, NULL, &readSensor, (void*) lineRightThread) != 0
-    || pthread_create(&lineLeftThread->id, NULL, &readSensor, (void*) lineLeftThread) != 0)
+    || pthread_create(&lineLeftThread->id, NULL, &readSensor, (void*) lineLeftThread) != 0
+    || pthread_create(&echoThread->id, NULL, &readEcho, (void*) echoThread) != 0)
     {
         perror("Thread creation error");
         return 1;
@@ -80,9 +109,9 @@ int initialize()
 
     //TODO function to initialize these threads
     gpioSetMode(IR_OUT, PI_INPUT);
-    irThread = malloc(sizeof(threadInfo));
-    irThread->pinNumber = IR_OUT;       // this thread will run for ir sensor 
-    irThread->valuePointer = &irValue;  // this thread will modify ir readings
+    frontIrThread = malloc(sizeof(threadInfo));
+    frontIrThread->pinNumber = IR_OUT;       // this thread will run for ir sensor 
+    frontIrThread->valuePointer = &frontIrValue;  // this thread will modify ir readings
 
     gpioSetMode(LINE_RIGHT_OUT, PI_INPUT);
     lineRightThread = malloc(sizeof(threadInfo));
@@ -94,14 +123,16 @@ int initialize()
     lineLeftThread->pinNumber = LINE_LEFT_OUT;       // this thread will run for ir sensor 
     lineLeftThread->valuePointer = &lineLeftValue;  // this thread will modify ir readings
 
+    gpioSetMode(TRIGGER, PI_OUTPUT);
+    gpioSetMode(ECHO, PI_INPUT);
+    echoThread = malloc(sizeof(threadInfo));
+    echoThread->pinNumber = ECHO;       // this thread will run for ir sensor 
+    echoThread->valuePointer = &echoDistance;  // this thread will modify ir readings
+
     return createThreads();
 }
 
 // Ctrl + C signal handler. Signals the program to cleanup threads and close down.
-static void endProgram()
-{
-    keepLooping = 0;
-}
 
 void moveForward()
 {
@@ -195,6 +226,111 @@ void brake()
     PCA9685_SetPwmDutyCycle(PWMB, 0, RIGHT_SIDE);
 }
 
+static void endProgram()
+{   
+    brake();
+    gpioTerminate();
+    DEV_ModuleExit();
+    keepLooping = 0;
+
+}
+
+void handleObstacle()
+{   
+    turnRight();
+    usleep(1500000);
+
+    //moveForward();
+    brake();
+    while(1){
+        printf("%d\n", echoDistance);
+        usleep(1000000);
+    }
+    brake();
+    // while(1)
+    // {
+    // if(obstDistance < echoDistance) 
+    // {
+    //     turnRight();
+    // usleep(1500000);
+    //     printf("distance too far %d\n", echoDistance);
+    //     printf("distance from obstacle %d\n", obstDistance);
+    //     brake();
+    //     usleep(10000000);
+    // }
+    // }
+
+
+    //lineRightValue == 0 && lineLeftValue == 0
+    // while(1)
+    // {
+    //     moveForward();
+    //     usleep(100000);
+    //     if(echoDistance > obstDistance)
+    //     {
+    //         brake();
+    //         printf("distance too far %d\n", echoDistance);
+    //         printf("distance from obstacle %d\n", obstDistance);
+    //         usleep(500000000);
+    //         // turnLeft();
+    //     }
+    //     // } else if(echoDistance < obstDistance)
+    //     // {
+    //     //     // turnRight();
+    //     //     // printf("distance too close %d\n", echoDistance);
+    //     //     // printf("distance from obstacle %d\n", obstDistance);
+    //     // } else 
+    //     // {
+    //     //     // moveForward();
+    //     //     // printf("moving forward %d\n", echoDistance);
+    //     //     // printf("distance from obstacle %d\n", obstDistance);
+    //     // }
+        
+    //     usleep(100000);
+    // }
+    
+
+
+
+    // gpioTerminate();
+    // DEV_ModuleExit();
+    usleep(500000000);
+
+
+    // printf("First tank right\n");
+    // turnRight();
+    // usleep(1200000);
+    // moveForward();
+    // usleep(900000);
+    // turnLeft();         //second turn
+    // usleep(1400000);
+    // moveForward();
+    // usleep(1900000);
+    // turnLeft();          //third turn
+    // usleep(1200000);
+    // moveForward();
+    // usleep(1400000);
+    // turnRight();
+    // usleep(1000000);
+
+
+    // while(lineLeftValue != 0) {
+    //     sharpTurnRight();
+    // }
+    
+    // while(leftFrontIrValue != 0) {}
+    // moveForward();
+    // while(leftFrontIrValue == 0) {} 
+    // while(leftMidIrValue != 0) {}   //while not detecting, turn right
+    // printf("Moving off course\n");
+    // moveForward();
+    // usleep(100000);
+    // while(rightFrontIrValue == 0) {}  //while detecting, go forward
+    // printf("First tank left\n");
+    // turnLeft();
+    // while(leftFrontIrValue != 0) {} //while not detecting, turn left 
+}
+
 int main(void)
 {   
     if(initialize()) {
@@ -213,18 +349,11 @@ int main(void)
     {
         // checks value obtained from ir sensor
         // and notify if an obstacle is detected 
-        while(irValue == 0)
+        if(frontIrValue == 0)
         {   
             printf("Obstacle detected, ");
-            usleep(100000);
-            brake();
-            // moveBackwards();
-            // go();
+            handleObstacle();
 
-            // usleep(500000);
-            // turnRight();
-            // usleep(750000);
-            // moveForward();
         }
         go();
 
@@ -239,6 +368,7 @@ int main(void)
                 printf("both sensors on, in first while loop.\n");
                 printf("sharp right turn.\n");
                 sharpTurnRight();
+                usleep(200000);
             }
             go();
             usleep(100000);
@@ -253,6 +383,7 @@ int main(void)
                 printf("both sensors on, in second while loop.\n");
                 printf("sharp left turn.\n");
                 sharpTurnLeft();
+                usleep(200000);
             }
             go();
             usleep(100000);
@@ -303,7 +434,7 @@ int main(void)
 //     lineThread.valuePointer = &lineValue;  // this thread will modify line readings
         
 //     // cleanup threads and exit program
-//     if(pthread_join(irThread.id, NULL) || pthread_join(lineThread.id, NULL))
+//     if(pthread_join(frontIrValue.id, NULL) || pthread_join(lineThread.id, NULL))
 //     {
 //         perror("\nProblem cleaning up threads.");
 //         return 1;

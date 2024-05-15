@@ -4,10 +4,10 @@ DIR_Config = ./lib/Config
 DIR_MotorDriver = ./lib/MotorDriver
 DIR_PCA9685 = ./lib/PCA9685
 
-OBJ_C = $(wildcard ${DIR_OBJ}/*.c assignment3.c ${DIR_Config}/*.c ${DIR_MotorDriver}/*.c ${DIR_PCA9685}/*.c )
+OBJ_C = $(wildcard ${DIR_OBJ}/*.c carfunctions.c ${DIR_Config}/*.c ${DIR_MotorDriver}/*.c ${DIR_PCA9685}/*.c )
 OBJ_O = $(patsubst %.c,${DIR_BIN}/%.o,$(notdir ${OBJ_C}))
 
-TARGET = assignment3
+TARGET = carfunctions
 
 CC = gcc
 
@@ -39,7 +39,7 @@ ${DIR_BIN}/%.o : $(DIR_MotorDriver)/%.c
 	$(CC) $(CFLAGS) -c  $< -o $@ $(LIB) -I $(DIR_Config) -I $(DIR_PCA9685)
 
 run:
-	sudo ./assignment3
+	sudo ./carfunctions
 
 clean :
 	rm $(DIR_BIN)/*.* 

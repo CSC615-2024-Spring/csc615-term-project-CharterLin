@@ -27,5 +27,6 @@
 #define LINE_RIGHT_OUT      15              // gpio pin for line sensor
 #define LINE_LEFT_OUT       17              // gpio pin for line sensor
 #define VELOCITY            0.034           // cm/uS
+#define BUTTON              27              // gpio pin for button input
 
 #endif

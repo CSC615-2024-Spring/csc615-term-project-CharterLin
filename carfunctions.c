@@ -119,6 +119,9 @@ int initialize()
         return 1;
     }
 
+    gpioSetMode(BUTTON, PI_INPUT);
+    gpioSetPullUpDown(BUTTON, PI_PUD_UP);
+
     gpioSetMode(IR_OUT, PI_INPUT);
     frontIrThread = malloc(sizeof(threadInfo));
     frontIrThread->pinNumber = IR_OUT;            // this thread will run for ir sensor
@@ -320,6 +323,8 @@ int main(void)
         printf("Initialization error\n");
         return 1;
     }
+
+    while(gpioRead(BUTTON) == 1) {}     // Polling for button press
     
     PCA9685_SetPWMFreq(100, LEFT_SIDE);
     PCA9685_SetPWMFreq(100, RIGHT_SIDE);
